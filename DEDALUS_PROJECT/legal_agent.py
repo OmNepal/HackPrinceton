@@ -1,3 +1,6 @@
+# Compliance Agent
+# Helps users identify licenses, permits, and legal requirements to start a business.
+
 import asyncio
 from dedalus_labs import AsyncDedalus, DedalusRunner
 from dotenv import load_dotenv
