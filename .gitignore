@@ -10,13 +10,17 @@ venv/
 ENV/
 .venv
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
+# Package manager lock files (uncomment if you don't want to commit them)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# Build outputs
+dist/
+build/
+.vite/
+*.log
+*.out
 
 # Environment variables
 .env
@@ -24,19 +28,59 @@ ENV/
 .env.development.local
 .env.test.local
 .env.production.local
+.env*.local
 
-# Build outputs
-dist/
-build/
-*.log
-*.out
+# IDE and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
 
-# OS
+# OS files
 Thumbs.db
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
+
+# Testing
+coverage/
+.nyc_output/
+*.lcov
 
 # Temporary files
 *.tmp
 *.temp
 .cache/
+.temp/
+*.cache
 
+# Vercel
+.vercel
+
+# AWS
+.aws-sam/
+amplify/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Optional: Keep package-lock.json but ignore others
+# Uncomment if you want to ignore lock files
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
