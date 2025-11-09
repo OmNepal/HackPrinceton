@@ -19,6 +19,9 @@ function App() {
   const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState('legal')
   const [generatingBrief, setGeneratingBrief] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
+  const [isTranscribing, setIsTranscribing] = useState(false)
+  const [mediaRecorder, setMediaRecorder] = useState(null)
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -100,6 +103,76 @@ function App() {
       setError(err.message || 'Failed to connect to backend')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleVoiceInput = async () => {
+    if (isRecording) {
+      // Stop recording
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop()
+      }
+      setIsRecording(false)
+      return
+    }
+
+    // Start recording
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const recorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus'
+      })
+      
+      const audioChunks = []
+      
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunks.push(event.data)
+        }
+      }
+      
+      recorder.onstop = async () => {
+        stream.getTracks().forEach(track => track.stop())
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' })
+        
+        // Send to backend for transcription
+        setIsTranscribing(true)
+        try {
+          const token = localStorage.getItem('token')
+          const formData = new FormData()
+          formData.append('audio', audioBlob, 'recording.webm')
+          
+          const res = await fetch('http://localhost:3000/api/transcribe', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            },
+            body: formData
+          })
+          
+          if (!res.ok) {
+            throw new Error(`Transcription failed: ${res.status}`)
+          }
+          
+          const data = await res.json()
+          if (data.transcript) {
+            setInput(data.transcript)
+          } else {
+            throw new Error('No transcript received')
+          }
+        } catch (err) {
+          setError(err.message || 'Failed to transcribe audio')
+        } finally {
+          setIsTranscribing(false)
+        }
+      }
+      
+      recorder.start()
+      setMediaRecorder(recorder)
+      setIsRecording(true)
+    } catch (err) {
+      setError('Failed to access microphone. Please allow microphone permissions.')
+      setIsRecording(false)
     }
   }
 
@@ -237,7 +310,7 @@ function App() {
                   backgroundClip: "text",
                 }}
               >
-                NeoFoundr
+                Foundaura+
               </span>
             </motion.h1>
             <div className="flex items-center gap-3 flex-1 justify-end">
@@ -282,7 +355,7 @@ function App() {
             transition={{ delay: 0.2 }}
             className={`${textColors.muted} text-xl font-medium`}
           >
-            Turn your business idea into reality
+            Empowering the founder in everyone.
           </motion.p>
         </motion.div>
 
@@ -299,16 +372,68 @@ function App() {
                 <span className="text-2xl">💡</span>
                 Describe Your Business Idea
               </label>
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="E.g., An app that helps people find local farmers markets..."
-                className={`w-full h-40 p-5 ${isDark 
-                  ? 'bg-white/10 border-white/30 text-white placeholder-white/50 focus:ring-blue-500/50 focus:border-blue-500/50' 
-                  : 'bg-white/60 border-slate-300/50 text-slate-900 placeholder-slate-500 focus:ring-blue-500/30 focus:border-blue-500/30'
-                } backdrop-blur-sm border-2 rounded-2xl resize-none transition-all`}
-                disabled={loading}
-              />
+              <div className="relative">
+                <textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="E.g., An app that helps people find local farmers markets..."
+                  className={`w-full h-40 p-5 pr-16 ${isDark 
+                    ? 'bg-white/10 border-white/30 text-white placeholder-white/50 focus:ring-blue-500/50 focus:border-blue-500/50' 
+                    : 'bg-white/60 border-slate-300/50 text-slate-900 placeholder-slate-500 focus:ring-blue-500/30 focus:border-blue-500/30'
+                  } backdrop-blur-sm border-2 rounded-2xl resize-none transition-all`}
+                  disabled={loading || isTranscribing}
+                />
+                <div className="absolute right-3 top-3 flex flex-col items-end gap-1">
+                  {(isRecording || isTranscribing) && (
+                    <motion.span
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`text-xs font-semibold px-2 py-1 rounded ${
+                        isRecording
+                          ? isDark
+                            ? 'bg-red-500/20 text-red-300'
+                            : 'bg-red-100 text-red-700'
+                          : isDark
+                            ? 'bg-blue-500/20 text-blue-300'
+                            : 'bg-blue-100 text-blue-700'
+                      }`}
+                    >
+                      {isRecording ? 'Recording' : 'Transcribing'}
+                    </motion.span>
+                  )}
+                  <motion.button
+                    type="button"
+                    onClick={handleVoiceInput}
+                    disabled={loading || isTranscribing}
+                    whileHover={{ scale: isRecording || loading || isTranscribing ? 1 : 1.1 }}
+                    whileTap={{ scale: isRecording || loading || isTranscribing ? 1 : 0.9 }}
+                    className={`p-3 cursor-pointer rounded-xl transition-all ${
+                      isRecording
+                        ? isDark
+                          ? 'bg-red-500/20 border-red-400/50 text-red-400'
+                          : 'bg-red-100 border-red-300 text-red-600'
+                        : isDark
+                          ? 'bg-white/10 border-white/20 text-white hover:bg-white/15'
+                          : 'bg-white/60 border-slate-300/50 text-slate-700 hover:bg-white/80'
+                    } border backdrop-blur-sm ${isTranscribing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    title={isRecording ? 'Stop recording' : isTranscribing ? 'Transcribing...' : 'Record voice input'}
+                  >
+                    {isTranscribing ? (
+                      <motion.span
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="text-xl"
+                      >
+                        ⏳
+                      </motion.span>
+                    ) : isRecording ? (
+                      <span className="text-xl">⏹️</span>
+                    ) : (
+                      <span className="text-xl">🎤</span>
+                    )}
+                  </motion.button>
+                </div>
+              </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

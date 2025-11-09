@@ -1,12 +1,13 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
 from typing import Optional
 from contextlib import asynccontextmanager
 from dedalus_agent import research_business_idea, research_financial_planning
 from snowflake_service import parse_intent, format_response, orchestrate_agents, synthesize_responses, generate_complete_business_brief
 from pdf_generator import create_business_brief_pdf_from_structured, generate_pdf_filename
+from transcription_service import transcribe_audio_from_bytes
 from database import connect_db, close_db
 from auth import router as auth_router
 import os
@@ -258,6 +259,43 @@ async def generate_business_brief(request: BusinessBriefRequest):
         raise HTTPException(
             status_code=500,
             detail=f"Error generating business brief: {str(e)}"
+        )
+
+
+@app.post("/api/transcribe")
+async def transcribe_audio_endpoint(audio: UploadFile = File(...)):
+    """
+    Transcribe audio file using Snowflake Cortex Audio Transcribe.
+    Accepts audio file upload and returns transcribed text.
+    """
+    try:
+        # Read audio file content
+        audio_bytes = await audio.read()
+        
+        if not audio_bytes:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "No audio file provided"}
+            )
+        
+        # Get filename from upload
+        filename = audio.filename or "recording.webm"
+        
+        # Transcribe using Snowflake Cortex Audio Transcribe
+        transcript = await transcribe_audio_from_bytes(audio_bytes, filename)
+        
+        return JSONResponse(
+            content={"transcript": transcript}
+        )
+        
+    except Exception as e:
+        print(f"Error transcribing audio: {e}")
+        import traceback
+        traceback.print_exc()
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error transcribing audio: {str(e)}"
         )
 
 if __name__ == "__main__":
