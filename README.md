@@ -1,4 +1,4 @@
-# NeoFoundr
+# Foundaura+
 
 NeoFoundr is an AI-powered co-founder that helps anyone turn a spark of an idea into a launch-ready startup. It blends multi-agent reasoning with real-time market intelligence so founders receive clear legal steps, cost and funding plans, marketing strategy, and an interactive roadmap the moment they submit their concept.
 
