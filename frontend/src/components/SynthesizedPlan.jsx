@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-function SynthesizedPlan({ plan }) {
+function SynthesizedPlan({ plan, theme = 'dark' }) {
+  const isDark = theme === 'dark'
   const [expandedSections, setExpandedSections] = useState(new Set(['immediate_steps']))
 
   if (!plan) return null
@@ -17,36 +18,45 @@ function SynthesizedPlan({ plan }) {
   }
 
   const SectionHeader = ({ title, sectionKey, icon }) => (
-    <button
+    <motion.button
+      whileHover={{ scale: 1.01 }}
+      whileTap={{ scale: 0.99 }}
       onClick={() => toggleSection(sectionKey)}
-      className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl hover:from-indigo-100 hover:to-purple-100 transition-colors"
+      className={`w-full flex items-center justify-between p-5 cursor-pointer ${isDark 
+        ? 'bg-purple-500/10 border-white/20 hover:bg-purple-500/15' 
+        : 'bg-purple-50/80 border-slate-200/50 hover:bg-purple-100/80'
+      } backdrop-blur-md rounded-2xl transition-all border shadow-xl`}
     >
       <div className="flex items-center gap-3">
-        <span className="text-2xl">{icon}</span>
-        <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+        <span className="text-3xl">{icon}</span>
+        <h3 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{title}</h3>
       </div>
       <motion.span
         animate={{ rotate: expandedSections.has(sectionKey) ? 180 : 0 }}
-        className="text-gray-600"
+        className={isDark ? 'text-white' : 'text-slate-700'}
+        style={{ fontSize: '1.5rem' }}
       >
         ▼
       </motion.span>
-    </button>
+    </motion.button>
   )
 
   return (
-    <div className="mt-8 space-y-4">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">AI Business Plan Summary</h2>
-
-      {plan.executive_summary && (
-        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl shadow-lg p-6 text-white mb-6">
-          <h3 className="text-xl font-semibold mb-3">Executive Summary</h3>
-          <p className="leading-relaxed">{plan.executive_summary}</p>
-        </div>
-      )}
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="mt-8 space-y-6"
+    >
+      <h2 className={`text-3xl font-extrabold ${isDark ? 'text-white' : 'text-slate-900'} mb-8 flex items-center gap-3`}>
+        <span className="text-4xl">🧩</span>
+        AI Business Plan Summary
+      </h2>
 
       {plan.action_plan && (
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+        <div className={`${isDark 
+          ? 'bg-white/10 border-white/20' 
+          : 'bg-white/80 border-slate-200/50'
+        } backdrop-blur-xl rounded-3xl shadow-2xl border overflow-hidden`}>
           <SectionHeader title="Action Plan" sectionKey="action_plan" icon="📋" />
           <AnimatePresence>
             {expandedSections.has('action_plan') && (
@@ -56,42 +66,78 @@ function SynthesizedPlan({ plan }) {
                 exit={{ height: 0, opacity: 0 }}
                 className="overflow-hidden"
               >
-                <div className="p-6 space-y-4">
+                <div className="p-8 space-y-6">
                   {plan.action_plan.immediate_steps && (
                     <div>
-                      <h4 className="font-semibold text-gray-800 mb-2">Immediate Steps</h4>
-                      <ul className="space-y-2">
+                      <h4 className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'} text-lg mb-4 flex items-center gap-2`}>
+                        <span className="text-2xl">⚡</span>
+                        Immediate Steps
+                      </h4>
+                      <ul className="space-y-3">
                         {plan.action_plan.immediate_steps.map((step, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-gray-700">
-                            <span className="text-indigo-600 mt-1">→</span>
-                            <span>{step}</span>
-                          </li>
+                          <motion.li 
+                            key={idx}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: idx * 0.1 }}
+                            className={`flex items-start gap-3 ${isDark 
+                              ? 'bg-white/5 border-white/10' 
+                              : 'bg-white/40 border-slate-200/30'
+                            } rounded-xl p-4 border`}
+                          >
+                            <span className={`${isDark ? 'text-purple-400' : 'text-purple-500'} mt-1 text-xl font-bold`}>→</span>
+                            <span className={isDark ? 'text-white/90' : 'text-slate-800'}>{step}</span>
+                          </motion.li>
                         ))}
                       </ul>
                     </div>
                   )}
                   {plan.action_plan.short_term_goals && (
                     <div>
-                      <h4 className="font-semibold text-gray-800 mb-2">Short-term Goals</h4>
-                      <ul className="space-y-2">
+                      <h4 className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'} text-lg mb-4 flex items-center gap-2`}>
+                        <span className="text-2xl">🎯</span>
+                        Short-term Goals
+                      </h4>
+                      <ul className="space-y-3">
                         {plan.action_plan.short_term_goals.map((goal, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-gray-700">
-                            <span className="text-purple-600 mt-1">•</span>
-                            <span>{goal}</span>
-                          </li>
+                          <motion.li 
+                            key={idx}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: idx * 0.1 }}
+                            className={`flex items-start gap-3 ${isDark 
+                              ? 'bg-white/5 border-white/10' 
+                              : 'bg-white/40 border-slate-200/30'
+                            } rounded-xl p-4 border`}
+                          >
+                            <span className={`${isDark ? 'text-fuchsia-400' : 'text-fuchsia-500'} mt-1 text-xl font-bold`}>•</span>
+                            <span className={isDark ? 'text-white/90' : 'text-slate-800'}>{goal}</span>
+                          </motion.li>
                         ))}
                       </ul>
                     </div>
                   )}
                   {plan.action_plan.long_term_considerations && (
                     <div>
-                      <h4 className="font-semibold text-gray-800 mb-2">Long-term Considerations</h4>
-                      <ul className="space-y-2">
+                      <h4 className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'} text-lg mb-4 flex items-center gap-2`}>
+                        <span className="text-2xl">🔮</span>
+                        Long-term Considerations
+                      </h4>
+                      <ul className="space-y-3">
                         {plan.action_plan.long_term_considerations.map((consideration, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-gray-700">
-                            <span className="text-gray-500 mt-1">○</span>
-                            <span>{consideration}</span>
-                          </li>
+                          <motion.li 
+                            key={idx}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: idx * 0.1 }}
+                            className={`flex items-start gap-3 ${isDark 
+                              ? 'bg-white/5 border-white/10' 
+                              : 'bg-white/40 border-slate-200/30'
+                            } rounded-xl p-4 border`}
+                          >
+                            <span className={isDark ? 'text-white/50' : 'text-slate-500'} style={{ fontSize: '1.25rem' }}>○</span>
+                            <span className={isDark ? 'text-white/80' : 'text-slate-700'}>{consideration}</span>
+                          </motion.li>
                         ))}
                       </ul>
                     </div>
@@ -104,7 +150,7 @@ function SynthesizedPlan({ plan }) {
       )}
 
       {plan.risk_assessment && (
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+        <div className="bg-white/10 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden">
           <SectionHeader title="Risk Assessment" sectionKey="risk_assessment" icon="⚠️" />
           <AnimatePresence>
             {expandedSections.has('risk_assessment') && (
@@ -114,33 +160,75 @@ function SynthesizedPlan({ plan }) {
                 exit={{ height: 0, opacity: 0 }}
                 className="overflow-hidden"
               >
-                <div className="p-6 space-y-4">
+                <div className="p-8 space-y-6">
                   {plan.risk_assessment.legal_risks && (
                     <div>
-                      <h4 className="font-semibold text-red-700 mb-2">Legal Risks</h4>
-                      <ul className="space-y-2">
+                      <h4 className={`font-bold ${isDark ? 'text-slate-300' : 'text-slate-700'} text-lg mb-4 flex items-center gap-2`}>
+                        <span className="text-2xl">⚖️</span>
+                        Legal Risks
+                      </h4>
+                      <ul className="space-y-3">
                         {plan.risk_assessment.legal_risks.map((risk, idx) => (
-                          <li key={idx} className="text-gray-700">• {risk}</li>
+                          <motion.li 
+                            key={idx}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: idx * 0.1 }}
+                            className={`${isDark 
+                              ? 'text-white/90 bg-slate-700/30 border-slate-600/40' 
+                              : 'text-slate-800 bg-slate-100/60 border-slate-300/50'
+                            } rounded-lg p-3 border`}
+                          >
+                            • {risk}
+                          </motion.li>
                         ))}
                       </ul>
                     </div>
                   )}
                   {plan.risk_assessment.financial_risks && (
                     <div>
-                      <h4 className="font-semibold text-orange-700 mb-2">Financial Risks</h4>
-                      <ul className="space-y-2">
+                      <h4 className={`font-bold ${isDark ? 'text-slate-300' : 'text-slate-700'} text-lg mb-4 flex items-center gap-2`}>
+                        <span className="text-2xl">💸</span>
+                        Financial Risks
+                      </h4>
+                      <ul className="space-y-3">
                         {plan.risk_assessment.financial_risks.map((risk, idx) => (
-                          <li key={idx} className="text-gray-700">• {risk}</li>
+                          <motion.li 
+                            key={idx}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: idx * 0.1 }}
+                            className={`${isDark 
+                              ? 'text-white/90 bg-slate-700/30 border-slate-600/40' 
+                              : 'text-slate-800 bg-slate-100/60 border-slate-300/50'
+                            } rounded-lg p-3 border`}
+                          >
+                            • {risk}
+                          </motion.li>
                         ))}
                       </ul>
                     </div>
                   )}
                   {plan.risk_assessment.mitigation_strategies && (
                     <div>
-                      <h4 className="font-semibold text-green-700 mb-2">Mitigation Strategies</h4>
-                      <ul className="space-y-2">
+                      <h4 className={`font-bold ${isDark ? 'text-purple-400' : 'text-purple-600'} text-lg mb-4 flex items-center gap-2`}>
+                        <span className="text-2xl">🛡️</span>
+                        Mitigation Strategies
+                      </h4>
+                      <ul className="space-y-3">
                         {plan.risk_assessment.mitigation_strategies.map((strategy, idx) => (
-                          <li key={idx} className="text-gray-700">✓ {strategy}</li>
+                          <motion.li 
+                            key={idx}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: idx * 0.1 }}
+                            className={`${isDark 
+                              ? 'text-white/90 bg-purple-500/10 border-purple-400/30' 
+                              : 'text-slate-800 bg-purple-50/60 border-purple-300/50'
+                            } rounded-lg p-3 border`}
+                          >
+                            ✓ {strategy}
+                          </motion.li>
                         ))}
                       </ul>
                     </div>
@@ -153,7 +241,10 @@ function SynthesizedPlan({ plan }) {
       )}
 
       {plan.recommendations && plan.recommendations.length > 0 && (
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+        <div className={`${isDark 
+          ? 'bg-white/10 border-white/20' 
+          : 'bg-white/80 border-slate-200/50'
+        } backdrop-blur-xl rounded-3xl shadow-2xl border overflow-hidden`}>
           <SectionHeader title="Recommendations" sectionKey="recommendations" icon="💡" />
           <AnimatePresence>
             {expandedSections.has('recommendations') && (
@@ -163,13 +254,22 @@ function SynthesizedPlan({ plan }) {
                 exit={{ height: 0, opacity: 0 }}
                 className="overflow-hidden"
               >
-                <div className="p-6">
-                  <ul className="space-y-3">
+                <div className="p-8">
+                  <ul className="space-y-4">
                     {plan.recommendations.map((rec, idx) => (
-                      <li key={idx} className="flex items-start gap-3 p-3 bg-indigo-50 rounded-lg">
-                        <span className="text-indigo-600 font-bold">{idx + 1}.</span>
-                        <span className="text-gray-700">{rec}</span>
-                      </li>
+                      <motion.li 
+                        key={idx}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.1 }}
+                        className={`flex items-start gap-4 p-4 ${isDark 
+                          ? 'bg-white/5 border-white/20' 
+                          : 'bg-white/40 border-slate-200/30'
+                        } backdrop-blur-sm rounded-xl border`}
+                      >
+                        <span className={`${isDark ? 'text-purple-400' : 'text-purple-500'} font-extrabold text-xl`}>{idx + 1}.</span>
+                        <span className={`${isDark ? 'text-white/90' : 'text-slate-800'} text-lg`}>{rec}</span>
+                      </motion.li>
                     ))}
                   </ul>
                 </div>
@@ -180,21 +280,38 @@ function SynthesizedPlan({ plan }) {
       )}
 
       {plan.next_steps && plan.next_steps.length > 0 && (
-        <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl shadow-lg p-6 border border-green-200">
-          <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <span>🚀</span> Next Steps
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`${isDark 
+            ? 'bg-purple-500/10 border-purple-400/20' 
+            : 'bg-purple-50/80 border-purple-200/40'
+          } backdrop-blur-xl rounded-3xl shadow-2xl p-8 border`}
+        >
+          <h3 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-slate-900'} mb-6 flex items-center gap-2`}>
+            <span className="text-3xl">🚀</span>
+            Next Steps
           </h3>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {plan.next_steps.map((step, idx) => (
-              <div key={idx} className="flex items-start gap-3 p-3 bg-white rounded-lg">
-                <span className="text-green-600 font-bold mt-1">{idx + 1}.</span>
-                <span className="text-gray-700">{step}</span>
-              </div>
+              <motion.div 
+                key={idx}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: idx * 0.1 }}
+                className={`flex items-start gap-4 p-4 ${isDark 
+                  ? 'bg-white/10 border-white/20 hover:border-purple-500/50' 
+                  : 'bg-white/60 border-slate-200/50 hover:border-purple-400/50'
+                } backdrop-blur-sm rounded-xl border transition-all`}
+              >
+                <span className={`${isDark ? 'text-purple-400' : 'text-purple-500'} font-extrabold text-xl mt-1`}>{idx + 1}.</span>
+                <span className={`${isDark ? 'text-white/90' : 'text-slate-800'} text-lg`}>{step}</span>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   )
 }
 

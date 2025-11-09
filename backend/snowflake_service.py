@@ -1,6 +1,6 @@
 """
 Snowflake AI (Cortex) REST API Service
-Handles intent parsing and response formatting using Snowflake's LLM API
+Handles intent parsing, orchestration, and response formatting plus synthesizing using Snowflake's LLM API
 """
 
 import os
@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# --- SNOWFLAKE CONFIGURATION ---
+# CONFIGURATION 
 SNOWFLAKE_ACCOUNT = os.getenv("SNOWFLAKE_ACCOUNT")
 SNOWFLAKE_USER = os.getenv("SNOWFLAKE_USER")
 SNOWFLAKE_ROLE = os.getenv("SNOWFLAKE_ROLE")
@@ -22,7 +22,7 @@ SNOWFLAKE_HOST = os.getenv("SNOWFLAKE_HOST")
 
 
 
-# Ensure endpoint is correct
+
 def ensure_protocol(url: str) -> str:
     """Ensure URL has https:// protocol"""
     if not url:
@@ -52,9 +52,9 @@ def _build_headers() -> dict:
 
 
 
-# --- CORE FUNCTION: PARSE INTENT ---
-async def parse_intent(user_text: str) -> Dict:
     """Extract structured info (business type, industry, etc.) from user text using Snowflake LLM."""
+async def parse_intent(user_text: str) -> Dict:
+
     if not SNOWFLAKE_PAT or not SNOWFLAKE_HOST:
         raise ValueError("SNOWFLAKE_PAT and SNOWFLAKE_HOST must be set in environment variables")
     if not CORTEX_ENDPOINT:
@@ -93,10 +93,7 @@ Return only the JSON object, no extra text."""
         result = resp.json()
 
     try:
-          # This will raise a ValueError if the JSON is invalid
-
         
-        # Cortex responses are OpenAI-compatible
         content = result["choices"][0]["message"]["content"]
         print(type(content)) #this is string
         print(content)
@@ -113,7 +110,7 @@ Return only the JSON object, no extra text."""
         raise Exception(f"Unexpected response format from Snowflake API: {result}") from e
 
 
-# --- CORE FUNCTION: ORCHESTRATE AGENTS ---
+#ORCHESTRATE AGENTS 
 async def orchestrate_agents(user_message: str, budget: str = None, location: str = None, parsed_intent: Dict = None) -> Dict:
     """
     Use Snowflake to orchestrate agent routing and determine which agents to call.
@@ -184,7 +181,7 @@ Return only the JSON object."""
         raise Exception(f"Unexpected response format from Snowflake orchestration API: {result}") from e
 
 
-# --- CORE FUNCTION: SYNTHESIZE RESPONSES ---
+# synthesizing responses from different agents into a single business plan
 async def synthesize_responses(legal_data: Dict = None, financial_data: Dict = None, user_message: str = None, location: str = None, budget: str = None) -> Dict:
     """
     Use Snowflake to synthesize and combine agent responses into a cohesive business plan.
