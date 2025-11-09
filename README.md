@@ -444,4 +444,4 @@ The frontend will be available at `http://localhost:5173` (or the port Vite assi
 
 **Disclaimer**: Foundaura+ is not a law firm or financial advisor. The generated guidance, legal requirements, and financial recommendations are provided as a starting point for entrepreneurs. Always verify information with licensed professionals before making business decisions or taking legal/financial actions.
 
-**Built for HackPrinceton 2024**
+**Built for HackPrinceton 2025**
