@@ -128,8 +128,10 @@ Adjust Snowflake keys to match your warehouse. `DEDALUS_PROJECT/.env` can hold t
 - OpenAI + multi-agent orchestration
 
 ## Team
-- **Raymond Lee** – Full-stack integration and AI agent orchestration.
-- **Jayden Cruz** – Backend, data infrastructure, and Devpost lead.
+- **Om Nepal** 
+- **Raymond Lee** 
+- **Jayden Cruz** 
+- **Zameer Qasim** 
 
 ---
 NeoFoundr is not a law firm or financial advisor. Treat the generated guidance as a starting point and verify with professionals before acting.
