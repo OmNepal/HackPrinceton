@@ -60,8 +60,9 @@ USERJS
 # Create middleware/auth.js
 cat > middleware/auth.js << 'AUTHJS'
 import jwt from 'jsonwebtoken'
+import User from '../models/User.js'
 
-export const authenticateToken = (req, res, next) => {
+export const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers['authorization']
     const token = authHeader && authHeader.split(' ')[1]
@@ -71,6 +72,13 @@ export const authenticateToken = (req, res, next) => {
     }
 
     const verified = jwt.verify(token, process.env.JWT_SECRET)
+    
+    // Verify user still exists in database
+    const user = await User.findById(verified.userId)
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' })
+    }
+    
     req.user = verified
     next()
   } catch (error) {

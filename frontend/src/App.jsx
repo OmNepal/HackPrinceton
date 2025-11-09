@@ -42,7 +42,7 @@ function App() {
 
     try {
       const token = localStorage.getItem('token')
-      const res = await fetch('http://localhost:3000/api/ideas/submit', {
+      const res = await fetch('http://localhost:3000/api/submit', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

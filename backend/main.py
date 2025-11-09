@@ -2,10 +2,24 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
+from contextlib import asynccontextmanager
 from dedalus_agent import research_business_idea
 from snowflake_service import parse_intent, format_response
+from database import connect_db, close_db
+from auth import router as auth_router
 
-app = FastAPI(title="FoundrMate API", version="1.0.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Connect to database
+    # await connect_db()
+    yield
+    # Shutdown: Close database connection
+    # await close_db()
+
+app = FastAPI(title="FoundrMate API", version="1.0.0", lifespan=lifespan)
+
+# Include auth routes
+app.include_router(auth_router)
 
 # CORS configuration to allow frontend to call the backend
 app.add_middleware(
