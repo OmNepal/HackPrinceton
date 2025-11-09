@@ -1,85 +1,135 @@
-# Leap (working title) — HackPrinceton Fall 2025
+# NeoFoundr
 
-Leap is our HackPrinceton Fall 2025 project exploring how founders can lean on AI co-pilots to validate a business idea faster. Powered by Dedalus Labs agents, Leap (name pending) combines compliance research, financial planning, and a lightweight UX so teams can go from idea → actionable guidance in minutes.
+NeoFoundr is an AI-powered co-founder that helps anyone turn a spark of an idea into a launch-ready startup. It blends multi-agent reasoning with real-time market intelligence so founders receive clear legal steps, cost and funding plans, marketing strategy, and an interactive roadmap the moment they submit their concept.
 
-## Why Dedalus-powered agents?
-- **Compliance scout**: surfaces licenses, permits, labor laws, and filing links relevant to the idea and location.
-- **Financial navigator**: estimates startup + operating costs, budget allocations, and funding sources.
-- **Research fusion**: Dedalus MCP servers (Brave Search, Exa, GovInfo) keep results grounded in live, citable sources.
+## Table of Contents
+- [Features](#features)
+- [Architecture](#architecture)
+- [Repository Layout](#repository-layout)
+- [Prerequisites](#prerequisites)
+- [Setup](#setup)
+- [Environment Variables](#environment-variables)
+- [Running Locally](#running-locally)
+- [API Contract](#api-contract)
+- [Challenges & Lessons](#challenges--lessons)
+- [Roadmap](#roadmap)
+- [Built With](#built-with)
+- [Team](#team)
+
+## Features
+- Translates free-form ideas into structured startup briefs with timeline, milestones, and ownership suggestions.
+- Multi-agent workflow (legal + financial) that drafts incorporation checklists, licensing requirements, and funding strategies.
+- Live market intelligence pulled from the Daedalus Labs API, persisted in Snowflake, and fused with AI insights.
+- Responsive React frontend that visualizes the entire roadmap and streams backend progress in real time.
+- FastAPI backend that orchestrates data collection, caching, and AI reasoning while exposing a simple submission endpoint.
 
 ## Architecture
-- **Frontend (`frontend/`)** – Vite + React app that collects an idea pitch and displays responses.
-- **Backend (`backend/`)** – FastAPI service that forwards submissions to the Dedalus runner (`dedalus_agent.py`) and exposes `POST /api/submit`.
-- **Standalone agents (`DEDALUS_PROJECT/`)** – `legal_agent.py` and `financial_agent.py` scripts showcasing deeper prompt flows for Leap’s planned modes.
-
 ```
-Frontend (Vite/React) ──▶ FastAPI backend ──▶ Dedalus Async runner ──▶ MCP research stack
-        ▲                         │
-        └────────── realtime responses + JSON payloads ───────────────┘
+React (Vite) Frontend  ←→  FastAPI Backend  ←→  Daedalus Labs API
+                                       ↘
+                                    Snowflake
 ```
+- **Frontend (`frontend/`)** collects user ideas, dispatches them to the backend, and renders the roadmap UI.
+- **Backend (`backend/`)** powers `POST /api/submit`, coordinates the legal and financial agents, and combines AI + live data.
+- **Agents (`DEDALUS_PROJECT/`)** house standalone legal and financial scripts used both inside the API and for richer experiments.
 
-## Tech stack
-- Python 3.11+, FastAPI, Dedalus Labs SDK
-- React 19 with Vite, Tailwind 4 beta styles
-- MCP servers: `windsor/brave-search-mcp`, `joerup/exa-mcp`, `windsor/gov-info-mcp`
-
-## Getting started
-### 0. Prerequisites
-- Python 3.11+
-- Node.js 18+ / npm
-- Dedalus Labs account + API key (`DEDALUS_API_KEY`)
-- (Optional) OpenAI key if you override the default provider
-
-### 1. Backend setup
-```bash
-cd backend
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-
-# create backend/.env (not committed)
-DEDALUS_API_KEY=your_key
-OPENAI_API_KEY=optional_overrides
-
-python main.py  # or uvicorn main:app --reload --port 3000
-```
-
-### 2. Frontend setup
-```bash
-cd frontend
-npm install
-npm run dev   # defaults to http://localhost:5173
-```
-The frontend expects the FastAPI server at `http://localhost:3000`. Update `fetch` URL in `src/App.jsx` if the backend runs elsewhere.
-
-### 3. Running the standalone agents (optional research scripts)
-Each script loads the same `.env` credentials and streams a richer Dedalus prompt for its domain.
-```bash
-cd DEDALUS_PROJECT
-python legal_agent.py
-python financial_agent.py
-```
-
-## API contract
-- `POST /api/submit`
-  - Request body: `{ "message": "plain text business idea" }`
-  - Response (success): `{ success: true, data: { received_idea, dedalus_research, status } }`
-  - Response (error): `{ success: false, message, data }`
-
-## Repository layout
+## Repository Layout
 ```
 .
-├── README.md                # You are here
-├── backend/                 # FastAPI service + dedalus agent glue code
-├── frontend/                # Vite/React client
-└── DEDALUS_PROJECT/         # Raw Dedalus agent scripts + .env placeholder
+├── README.md
+├── backend/
+├── frontend/
+└── DEDALUS_PROJECT/
 ```
 
-## Roadmap ideas
-- Enrich Leap’s UI with structured cards instead of raw JSON.
-- Extend the agent pack with go-to-market and hiring advisors.
-- Persist session history to capture agent provenance for each idea.
+## Prerequisites
+- Python 3.11+
+- Node.js 18+ / npm
+- Daedalus Labs account + `DEDALUS_API_KEY`
+- Optional: `OPENAI_API_KEY` if overriding the default provider
+
+## Setup
+1. **Clone**
+   ```bash
+   git clone <repo>
+   cd HackPrinceton
+   ```
+2. **Frontend deps**
+   ```bash
+   cd frontend
+   npm install
+   ```
+3. **Backend deps**
+   ```bash
+   cd backend
+   python -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements.txt
+   ```
+
+## Environment Variables
+Create `backend/.env` with:
+```
+DEDALUS_API_KEY=your_dedalus_key
+OPENAI_API_KEY=optional_override
+SNOWFLAKE_ACCOUNT=...
+SNOWFLAKE_USER=...
+SNOWFLAKE_PASSWORD=...
+```
+Adjust Snowflake keys to match your warehouse. `DEDALUS_PROJECT/.env` can hold the same values for the standalone scripts.
+
+## Running Locally
+1. **Backend**
+   ```bash
+   cd backend
+   source .venv/bin/activate
+   python main.py
+   # or: uvicorn main:app --reload --port 3000
+   ```
+   Swagger UI will be at `http://localhost:3000/docs`.
+
+2. **Frontend**
+   ```bash
+   cd frontend
+   npm run dev
+   ```
+   Open the URL that Vite prints (defaults to `http://localhost:5173`). Keep both servers running for live previews.
+
+3. **Standalone agents (optional)**
+   ```bash
+   cd DEDALUS_PROJECT
+   python legal_agent.py
+   python financial_agent.py
+   ```
+
+## API Contract
+- `POST /api/submit`
+  - Request: `{ "message": "plain text business idea" }`
+  - Success: `{ success: true, data: { received_idea, roadmap, market_intel, status } }`
+  - Error: `{ success: false, message, data }`
+
+## Challenges & Lessons
+- Integrating Daedalus Labs live data with AI generations required careful caching and Snowflake modeling.
+- Rendering large roadmap payloads exposed latency between React and FastAPI; streaming responses smoothed UX.
+- Ensuring AI advice stayed grounded in current market data pushed us to add validation passes and provenance tracking.
+- First-time use of Daedalus + Snowflake taught the team how to wire external data pipelines into a reasoning stack.
+
+## Roadmap
+1. Expand Daedalus integrations for deeper sector insights and competitive analysis.
+2. Automate business registration workflows and stage-based mentorship agents.
+3. Connect Snowflake to live financial APIs for up-to-the-minute cost/funding projections.
+4. Build collaborative dashboards so teams can track progress and share ventures with advisors or investors.
+
+## Built With
+- React 19 + Vite
+- FastAPI (Python 3.11)
+- Daedalus Labs API
+- Snowflake
+- OpenAI + multi-agent orchestration
+
+## Team
+- **Raymond Lee** – Full-stack integration and AI agent orchestration.
+- **Jayden Cruz** – Backend, data infrastructure, and Devpost lead.
 
 ---
-Leap is not a law firm or financial advisor; treat the outputs as informed starting points and verify with professionals before acting.
-
-
+NeoFoundr is not a law firm or financial advisor. Treat the generated guidance as a starting point and verify with professionals before acting.
