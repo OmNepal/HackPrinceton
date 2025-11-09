@@ -18,6 +18,7 @@ function App() {
   const [response, setResponse] = useState(null)
   const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState('legal')
+  const [generatingBrief, setGeneratingBrief] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -99,6 +100,51 @@ function App() {
       setError(err.message || 'Failed to connect to backend')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleGenerateBrief = async () => {
+    if (!response) return
+    
+    setGeneratingBrief(true)
+    try {
+      const token = localStorage.getItem('token')
+      const res = await fetch('http://localhost:3000/api/business-brief', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          idea: response.received_idea,
+          budget: response.budget,
+          location: response.location,
+          legal_data: response.legal?.formatted || null,
+          financial_data: response.financial?.formatted || null,
+          synthesized_plan: response.synthesized_plan || null
+        })
+      })
+
+      if (!res.ok) {
+        throw new Error(`Server error: ${res.status}`)
+      }
+
+      // Get the PDF blob
+      const blob = await res.blob()
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `business_brief_${Date.now()}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (err) {
+      setError(err.message || 'Failed to generate business brief')
+    } finally {
+      setGeneratingBrief(false)
     }
   }
 
@@ -374,6 +420,8 @@ function App() {
               location={response.location}
               executiveSummary={response.synthesized_plan?.executive_summary}
               theme={theme}
+              onGenerateBrief={handleGenerateBrief}
+              generatingBrief={generatingBrief}
             />
 
             <div className={`${cardStyles} rounded-3xl shadow-2xl border overflow-hidden`}>

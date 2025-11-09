@@ -344,3 +344,306 @@ Return only the JSON object."""
         return json_content
     except Exception as e:
         raise Exception(f"Unexpected response format from Snowflake API: {result}") from e
+
+
+# Model for business brief generation
+# Defaults to claude-4-sonnet, but falls back to SNOWFLAKE_MODEL if claude-4-sonnet is unavailable
+# To use claude-4-sonnet, I have SET ENABLE_CROSS_REGION_INFERENCE to all regions
+BRIEF_MODEL = os.getenv("BRIEF_MODEL")
+if not BRIEF_MODEL:
+    # Try claude-4-sonnet first, but fall back to SNOWFLAKE_MODEL if unavailable
+    BRIEF_MODEL = "claude-4-sonnet"
+    # Note: If claude-4-sonnet fails due to region, the code will need to catch and retry with SNOWFLAKE_MODEL
+
+
+async def generate_idea_summary_with_snowflake(
+    raw_idea: str,
+    budget: str = None,
+    location: str = None
+) -> str:
+    """Generate a clean, professional summary of the business idea using Snowflake Cortex with Claude."""
+    if not SNOWFLAKE_PAT or not SNOWFLAKE_HOST:
+        raise ValueError("SNOWFLAKE_PAT and SNOWFLAKE_HOST must be set in environment variables")
+    if not CORTEX_ENDPOINT:
+        raise ValueError("SNOWFLAKE_HOST must be set to construct the endpoint")
+    
+    context_info = []
+    if location:
+        context_info.append(f"Location: {location}")
+    if budget:
+        context_info.append(f"Budget: {budget}")
+    context_str = "\n".join(context_info) if context_info else "Not specified"
+    
+    system_prompt = """You are a business consultant. Create a professional, concise summary of a business idea.
+
+Generate a polished, professional one-sentence to two-sentence summary that clearly describes the business concept. 
+Make it suitable for a business brief document. Focus on what the business does and its core value proposition.
+
+Example format: "An online platform connecting local farmers with consumers to sell organic produce directly, promoting sustainable agriculture and supporting local communities."
+
+Return ONLY the summary text, no additional commentary or labels."""
+    
+    user_prompt = f"""Raw user input: "{raw_idea}"
+Additional context:
+{context_str}
+
+Generate the professional business idea summary."""
+
+    payload = {
+        "model": BRIEF_MODEL,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        "stream": False,
+    }
+
+    headers = _build_headers()
+
+    async with httpx.AsyncClient(timeout=60) as client:
+        resp = await client.post(CORTEX_ENDPOINT, json=payload, headers=headers)
+        if not resp.is_success:
+            error_text = resp.text
+            # Check if it's a region availability error and fall back to SNOWFLAKE_MODEL
+            if "unavailable in your region" in error_text or "cross region inference" in error_text.lower():
+                print(f"Model {BRIEF_MODEL} unavailable in region. Falling back to SNOWFLAKE_MODEL: {SNOWFLAKE_MODEL}")
+                if SNOWFLAKE_MODEL and SNOWFLAKE_MODEL != BRIEF_MODEL:
+                    # Retry with SNOWFLAKE_MODEL
+                    payload["model"] = SNOWFLAKE_MODEL
+                    resp = await client.post(CORTEX_ENDPOINT, json=payload, headers=headers)
+                    if resp.is_success:
+                        resp.raise_for_status()
+                        result = resp.json()
+                    else:
+                        error_text = resp.text
+                        print(f"Snowflake API Error Response (fallback): {error_text}")
+                        raise Exception(f"Snowflake API error ({resp.status_code}): {error_text}")
+                else:
+                    raise Exception(f"Model {BRIEF_MODEL} unavailable in your region. Please enable cross-region inference or set BRIEF_MODEL to a model available in your region. Error: {error_text}")
+            else:
+                print(f"Snowflake API Error Response: {error_text}")
+                print(f"Request payload model: {BRIEF_MODEL}")
+                raise Exception(f"Snowflake API error ({resp.status_code}): {error_text}")
+        else:
+            resp.raise_for_status()
+            result = resp.json()
+
+    try:
+        content = result["choices"][0]["message"]["content"]
+        return content.strip()
+    except Exception as e:
+        raise Exception(f"Unexpected response format from Snowflake idea summary API: {result}") from e
+
+
+async def generate_section_with_snowflake(
+    section_name: str,
+    section_prompt: str,
+    idea_summary: str,
+    context_str: str = "",
+    additional_context: str = ""
+) -> str:
+    """Generate a section using Snowflake Cortex with Claude model."""
+    if not SNOWFLAKE_PAT or not SNOWFLAKE_HOST:
+        raise ValueError("SNOWFLAKE_PAT and SNOWFLAKE_HOST must be set in environment variables")
+    if not CORTEX_ENDPOINT:
+        raise ValueError("SNOWFLAKE_HOST must be set to construct the endpoint")
+    
+    user_prompt = f"""Business Idea: {idea_summary}
+{context_str}
+{additional_context}
+
+{section_prompt}"""
+
+    payload = {
+        "model": BRIEF_MODEL,
+        "messages": [
+            {"role": "user", "content": user_prompt},
+        ],
+        "stream": False,
+    }
+
+    headers = _build_headers()
+
+    async with httpx.AsyncClient(timeout=90) as client:
+        resp = await client.post(CORTEX_ENDPOINT, json=payload, headers=headers)
+        if not resp.is_success:
+            error_text = resp.text
+            # Check if it's a region availability error and fall back to SNOWFLAKE_MODEL
+            if "unavailable in your region" in error_text or "cross region inference" in error_text.lower():
+                print(f"Model {BRIEF_MODEL} unavailable in region for {section_name}. Falling back to SNOWFLAKE_MODEL: {SNOWFLAKE_MODEL}")
+                if SNOWFLAKE_MODEL and SNOWFLAKE_MODEL != BRIEF_MODEL:
+                    # Retry with SNOWFLAKE_MODEL
+                    payload["model"] = SNOWFLAKE_MODEL
+                    resp = await client.post(CORTEX_ENDPOINT, json=payload, headers=headers)
+                    if resp.is_success:
+                        resp.raise_for_status()
+                        result = resp.json()
+                    else:
+                        error_text = resp.text
+                        print(f"Snowflake API Error Response for {section_name} (fallback): {error_text}")
+                        raise Exception(f"Snowflake API error ({resp.status_code}): {error_text}")
+                else:
+                    raise Exception(f"Model {BRIEF_MODEL} unavailable in your region. Please enable cross-region inference or set BRIEF_MODEL to a model available in your region. Error: {error_text}")
+            else:
+                print(f"Snowflake API Error Response for {section_name}: {error_text}")
+                print(f"Request payload model: {BRIEF_MODEL}")
+                raise Exception(f"Snowflake API error ({resp.status_code}): {error_text}")
+        else:
+            resp.raise_for_status()
+            result = resp.json()
+
+    try:
+        content = result["choices"][0]["message"]["content"]
+        return content.strip()
+    except Exception as e:
+        raise Exception(f"Unexpected response format from Snowflake {section_name} API: {result}") from e
+
+
+async def generate_complete_business_brief(
+    idea: str,
+    budget: str = None,
+    location: str = None,
+    legal_data: Dict = None,
+    financial_data: Dict = None,
+    synthesized_plan: Dict = None
+) -> Dict[str, str]:
+    """
+    Generate a complete structured business brief with all sections using Snowflake Cortex with Claude model.
+    Returns a dictionary with idea_summary and all section contents.
+    """
+
+    idea_summary = await generate_idea_summary_with_snowflake(idea, budget, location)
+    
+    # Building the context string
+    context_parts = []
+    if location:
+        context_parts.append(f"Location: {location}")
+    if budget:
+        context_parts.append(f"Budget: {budget}")
+    context_str = "\n".join(context_parts) if context_parts else "Context: Not specified"
+    
+    # Build additional context from legal/financial data
+    additional_context_parts = []
+    if synthesized_plan and isinstance(synthesized_plan, dict):
+        exec_summary = synthesized_plan.get("executive_summary", "")
+        if exec_summary:
+            additional_context_parts.append(f"Existing insights: {exec_summary}")
+    
+    additional_context = "\n".join(additional_context_parts) if additional_context_parts else ""
+    
+    # Step 2: Generate Executive Summary
+    exec_summary_prompt = """Write a compelling Executive Summary (2-3 paragraphs) that:
+- Provides a clear overview of the business opportunity
+- Highlights the key value proposition
+- Mentions the target market briefly
+- Conveys why this is a timely and viable opportunity
+
+Write in a professional, persuasive tone suitable for investors or business partners. 
+Return ONLY the Executive Summary text, no section headers or labels."""
+    
+    executive_summary = await generate_section_with_snowflake(
+        "Executive Summary",
+        exec_summary_prompt,
+        idea_summary,
+        context_str,
+        additional_context
+    )
+    
+    # Step 3: Generate Market Opportunity
+    market_prompt = """Write a compelling "Idea & Market Opportunity" section (2-3 paragraphs) that:
+- Explains what market gap or problem this idea addresses
+- Describes the size and potential of the target market
+- Highlights current market trends that support this opportunity
+- Explains why now is the right time for this business
+
+Write in a professional, data-driven tone. Be specific about market opportunities.
+Return ONLY the section content, no section headers or labels."""
+    
+    market_opportunity = await generate_section_with_snowflake(
+        "Market Opportunity",
+        market_prompt,
+        idea_summary,
+        context_str
+    )
+    
+    # Step 4: Generate Target Audience
+    audience_prompt = """Write a detailed "Target Audience" section (2-3 paragraphs) that:
+- Identifies the primary target customers (demographics, psychographics)
+- Describes their needs, pain points, and motivations
+- Explains why this audience would be interested in this product/service
+- Mentions any secondary target segments if relevant
+
+Be specific and detailed. Write in a professional tone.
+Return ONLY the section content, no section headers or labels."""
+    
+    target_audience = await generate_section_with_snowflake(
+        "Target Audience",
+        audience_prompt,
+        idea_summary,
+        context_str
+    )
+    
+    # Step 5: Generate Plan of Action
+    action_plan_context = ""
+    if synthesized_plan and isinstance(synthesized_plan, dict):
+        action_plan = synthesized_plan.get("action_plan", {})
+        if action_plan:
+            immediate = action_plan.get("immediate_steps", [])
+            short_term = action_plan.get("short_term_goals", [])
+            if immediate or short_term:
+                action_plan_context = "\nExisting action plan insights:\n"
+                if immediate:
+                    action_plan_context += f"Immediate steps: {', '.join(immediate[:5])}\n"
+                if short_term:
+                    action_plan_context += f"Short-term goals: {', '.join(short_term[:5])}"
+    
+    plan_prompt = """Write a strategic "Plan of Action" section (2-3 paragraphs) that:
+- Outlines high-level strategic steps to launch and grow the business
+- Focuses on business strategy, not detailed legal/financial compliance steps
+- Describes key milestones and phases
+- Explains the approach to market entry and growth
+
+Write in a professional, strategic tone. Keep it high-level and focused on business strategy.
+Return ONLY the section content, no section headers or labels."""
+    
+    plan_of_action = await generate_section_with_snowflake(
+        "Plan of Action",
+        plan_prompt,
+        idea_summary,
+        context_str,
+        action_plan_context
+    )
+    
+    # Step 6: Generate Why Succeed
+    why_succeed_context = ""
+    if synthesized_plan and isinstance(synthesized_plan, dict):
+        recommendations = synthesized_plan.get("recommendations", [])
+        if recommendations:
+            why_succeed_context = f"\nKey recommendations: {', '.join(recommendations[:5])}"
+    
+    why_succeed_prompt = """Write a compelling "Why This Idea Could Succeed" section (2-3 paragraphs) that:
+- Identifies key competitive advantages and differentiators
+- Explains unique value propositions
+- Highlights strengths that position this business for success
+- Mentions favorable market conditions or trends
+- Addresses why this team/approach can execute successfully
+
+Write in a confident, persuasive tone suitable for investors.
+Return ONLY the section content, no section headers or labels."""
+    
+    why_succeed = await generate_section_with_snowflake(
+        "Why Succeed",
+        why_succeed_prompt,
+        idea_summary,
+        context_str,
+        why_succeed_context
+    )
+    
+    return {
+        "idea_summary": idea_summary,
+        "executive_summary": executive_summary,
+        "market_opportunity": market_opportunity,
+        "target_audience": target_audience,
+        "plan_of_action": plan_of_action,
+        "why_succeed": why_succeed
+    }

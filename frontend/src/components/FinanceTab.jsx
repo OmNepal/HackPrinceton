@@ -141,7 +141,7 @@ function FinanceTab({ financialData, theme = 'dark' }) {
         >
           <h3 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-slate-900'} mb-6 flex items-center gap-2`}>
             <span className="text-3xl">💰</span>
-            Cost Breakdown
+            Cost Breakdown (Estimated!)
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             {cost_breakdown.startup_costs !== undefined && (
