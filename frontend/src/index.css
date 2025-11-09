@@ -36,3 +36,14 @@
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+/* Logo background removal */
+.logo-no-bg {
+  mix-blend-mode: multiply;
+  filter: contrast(1.1) brightness(1.05);
+}
+
+.dark .logo-no-bg {
+  mix-blend-mode: screen;
+  filter: invert(1) contrast(1.1) brightness(1.05);
+}

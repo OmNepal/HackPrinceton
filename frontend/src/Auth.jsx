@@ -150,8 +150,17 @@ function Auth({ onAuthSuccess }) {
                 initial={{ scale: 0.9 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", stiffness: 200 }}
-                className="text-5xl font-extrabold mb-3 relative"
+                className="text-5xl font-extrabold mb-3 relative flex items-center justify-center gap-3"
               >
+                <motion.img
+                  src="/logo.png"
+                  alt="Foundaura+ Logo"
+                  initial={{ opacity: 0, rotate: -180 }}
+                  animate={{ opacity: 1, rotate: 0 }}
+                  transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  className="w-12 h-12 object-contain drop-shadow-lg logo-no-bg"
+                />
                 <span
                   className="inline-block animate-gradient-text drop-shadow-lg"
                   style={{
@@ -163,7 +172,7 @@ function Auth({ onAuthSuccess }) {
                     backgroundClip: "text",
                   }}
                 >
-                  NeoFoundr
+                  Foundaura+
                 </span>
               </motion.h1>
               <p className={`${isDark ? 'text-white/80' : 'text-slate-700'} text-lg font-medium`}>{isLogin ? 'Welcome back!' : 'Start your journey'}</p>
