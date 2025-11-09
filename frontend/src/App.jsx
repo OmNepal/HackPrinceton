@@ -297,8 +297,17 @@ function App() {
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 200 }}
-              className="text-6xl font-extrabold flex-1 text-center relative"
+              className="text-6xl font-extrabold flex-1 text-center relative flex items-center justify-center gap-4"
             >
+              <motion.img
+                src="/logo.png"
+                alt="Foundaura+ Logo"
+                initial={{ opacity: 0, rotate: -180 }}
+                animate={{ opacity: 1, rotate: 0 }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                className="w-16 h-16 object-contain drop-shadow-lg logo-no-bg"
+              />
               <span
                 className="inline-block animate-gradient-text drop-shadow-lg"
                 style={{
