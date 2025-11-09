@@ -279,7 +279,13 @@ Return ONLY valid JSON with:
   "steps": [{"title": "step", "description": "details", "agency": "agency", "links": ["url"]}],
   "key_requirements": ["requirement1", "requirement2"],
   "estimated_timeline": "time"
-}"""
+}
+
+IMPORTANT: For links in the "steps" array:
+- Prefer homepage URLs (e.g., https://www.nj.gov) unless you verified a specific page exists
+- Only use specific page URLs if you are certain they are valid and accessible
+- Always use full URLs starting with https://
+"""
     else:
         system_prompt = """You are a financial formatter.
 Return ONLY valid JSON with:
@@ -292,7 +298,13 @@ Return ONLY valid JSON with:
   },
   "funding_sources": [{"name": "source", "type": "loan/grant", "description": "desc", "link": "url"}],
   "recommendations": ["recommendation1", "recommendation2"]
-}"""
+}
+
+IMPORTANT: For links in "funding_sources":
+- Prefer homepage URLs (e.g., https://www.sba.gov) unless you verified a specific page exists
+- Only use specific page URLs if you are certain they are valid and accessible
+- Always use full URLs starting with https://
+"""
 
     user_prompt = f"""Format the following {response_type} info into structured JSON:
 {raw_text}

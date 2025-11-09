@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import Auth from './Auth'
+import ResponseHeader from './components/ResponseHeader'
+import LegalTab from './components/LegalTab'
+import FinanceTab from './components/FinanceTab'
+import SynthesizedPlan from './components/SynthesizedPlan'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -10,6 +15,7 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [response, setResponse] = useState(null)
   const [error, setError] = useState(null)
+  const [activeTab, setActiveTab] = useState('legal')
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -35,6 +41,7 @@ function App() {
     setLocation('')
     setResponse(null)
     setError(null)
+    setActiveTab('legal')
   }
 
   const handleSubmit = async (e) => {
@@ -61,7 +68,28 @@ function App() {
 
       if (!res.ok) throw new Error(`Server error: ${res.status}`)
       const data = await res.json()
-      setResponse(data)
+      
+      // Extract only required fields from response.data
+      const simplifiedData = {
+        received_idea: data?.data?.received_idea || '',
+        budget: data?.data?.budget || null,
+        location: data?.data?.location || null,
+        legal: data?.data?.legal ? {
+          formatted: data.data.legal.formatted
+        } : null,
+        financial: data?.data?.financial ? {
+          formatted: data.data.financial.formatted
+        } : null,
+        synthesized_plan: data?.data?.synthesized_plan || null
+      }
+      
+      setResponse(simplifiedData)
+      // Set active tab based on available data
+      if (simplifiedData.legal) {
+        setActiveTab('legal')
+      } else if (simplifiedData.financial) {
+        setActiveTab('finance')
+      }
       setInput('')
       setBudget('')
       setLocation('')
@@ -77,8 +105,8 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-3xl">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4">
+      <div className="w-full max-w-6xl mx-auto">
         <div className="text-center mb-8">
           <div className="flex items-center justify-between mb-4">
             <div></div>
@@ -140,14 +168,90 @@ function App() {
             <div className="flex justify-between items-center">
               <span className="text-xs text-gray-500">{input.length} characters</span>
               <button type="submit" disabled={loading || !input.trim()} className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold disabled:from-gray-400">
-                {loading ? 'Processing...' : 'Send Idea'}
+                {loading ? 'Processing...' : 'Analyze Idea'}
               </button>
             </div>
           </div>
         </form>
 
-        {error && <div className="mt-6 bg-red-50 border-l-4 border-red-500 rounded-lg p-4"><p className="text-red-700">{error}</p></div>}
-        {response && <div className="mt-6 bg-white rounded-2xl shadow-xl p-6"><h2 className="text-2xl font-bold text-gray-800 mb-4">Response</h2><pre className="whitespace-pre-wrap text-sm">{JSON.stringify(response, null, 2)}</pre></div>}
+        {error && (
+          <div className="mt-6 bg-red-50 border-l-4 border-red-500 rounded-lg p-4">
+            <p className="text-red-700">{error}</p>
+          </div>
+        )}
+
+        {response && (
+          <div className="mt-8">
+            <ResponseHeader
+              receivedIdea={response.received_idea}
+              budget={response.budget}
+              location={response.location}
+              executiveSummary={response.synthesized_plan?.executive_summary}
+            />
+
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+              {(response.legal || response.financial) && (
+                <div className="flex border-b border-gray-200">
+                  {response.legal && (
+                    <button
+                      onClick={() => setActiveTab('legal')}
+                      className={`flex-1 px-6 py-4 font-semibold transition-colors ${
+                        activeTab === 'legal'
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      ⚖️ Dive into Legality
+                    </button>
+                  )}
+                  {response.financial && (
+                    <button
+                      onClick={() => setActiveTab('finance')}
+                      className={`flex-1 px-6 py-4 font-semibold transition-colors ${
+                        activeTab === 'finance'
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      💰 Understand Finances
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <div className="p-6">
+                <AnimatePresence mode="wait">
+                  {activeTab === 'legal' && response.legal && (
+                    <motion.div
+                      key="legal"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <LegalTab legalData={response.legal} />
+                    </motion.div>
+                  )}
+                  {activeTab === 'finance' && response.financial && (
+                    <motion.div
+                      key="finance"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <FinanceTab financialData={response.financial} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+
+            {response.synthesized_plan && (
+              <SynthesizedPlan plan={response.synthesized_plan} />
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

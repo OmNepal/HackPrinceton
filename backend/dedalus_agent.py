@@ -37,6 +37,12 @@ Please research:
 5. Zoning requirements and permits (location-specific)
 6. Suggested forms or agencies where these can be filed (with location-specific contact information)
 7. Provide links or references for each requirement
+
+IMPORTANT LINK GUIDELINES:
+- Always provide the homepage URL (e.g., https://www.nj.gov) unless you have verified a specific page exists
+- Only include specific page URLs if you are absolutely certain they exist and are accessible
+- Prefer main agency/organization homepages where users can navigate to find the specific information
+- Format: Use full URLs starting with https://
 """
 
         result = await runner.run(
@@ -105,6 +111,12 @@ Please research:
    - Angel investors or startup accelerators in the region
 5. Provide cost-saving strategies for early operations
 6. Return your findings as an organized cost breakdown and funding plan with specific links and contact information
+
+IMPORTANT LINK GUIDELINES:
+- Always provide the homepage URL (e.g., https://www.sba.gov) unless you have verified a specific page exists
+- Only include specific page URLs if you are absolutely certain they exist and are accessible
+- Prefer main organization homepages where users can navigate to find the specific program or information
+- Format: Use full URLs starting with https://
 """
 
         result = await runner.run(
