@@ -1,20 +1,20 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional
 from contextlib import asynccontextmanager
 from dedalus_agent import research_business_idea, research_financial_planning
-from snowflake_service import parse_intent, format_response, orchestrate_agents, synthesize_responses
+from snowflake_service import parse_intent, format_response, orchestrate_agents, synthesize_responses, generate_complete_business_brief
+from pdf_generator import create_business_brief_pdf_from_structured, generate_pdf_filename
 from database import connect_db, close_db
 from auth import router as auth_router
+import os
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Connect to database
-    # await connect_db()
     yield
-    # Shutdown: Close database connection
-    # await close_db()
+   
 
 app = FastAPI(title="FoundrMate API", version="1.0.0", lifespan=lifespan)
 
@@ -41,6 +41,15 @@ class BusinessIdeaResponse(BaseModel):
     success: bool
     message: str
     data: Optional[dict] = None
+
+# Request model for business brief
+class BusinessBriefRequest(BaseModel):
+    idea: str
+    budget: Optional[str] = None
+    location: Optional[str] = None
+    legal_data: Optional[dict] = None
+    financial_data: Optional[dict] = None
+    synthesized_plan: Optional[dict] = None
 
 @app.get("/")
 async def root():
@@ -198,6 +207,57 @@ async def submit_business_idea(request: BusinessIdeaRequest):
             success=False,
             message=f"Error processing request: {str(e)}",
             data=None
+        )
+
+
+@app.post("/api/business-brief")
+async def generate_business_brief(request: BusinessBriefRequest):
+    """
+    Generate a business brief PDF from the current idea/session data.
+    This creates a marketing-style brief (not legal/financial checklist).
+    Uses Gemini to generate structured sections.
+    """
+    try:
+        # Step 1: Generate complete structured business brief using Gemini
+        brief_data = await generate_complete_business_brief(
+            idea=request.idea,
+            budget=request.budget,
+            location=request.location,
+            legal_data=request.legal_data,
+            financial_data=request.financial_data,
+            synthesized_plan=request.synthesized_plan
+        )
+        
+        # Step 2: Generate PDF from the structured brief data
+        idea_name = brief_data.get("idea_summary", request.idea[:50] if request.idea else "Business Idea")
+        pdf_buffer = create_business_brief_pdf_from_structured(brief_data)
+        
+        # Step 3: Generate filename
+        filename = generate_pdf_filename(idea_name)
+        
+        # Step 4: Store brief (for future: could store in Snowflake database here)
+        # For now, we'll just return the PDF
+        # TODO: If Snowflake database is set up, store:
+        # - brief_data as JSON in marketing_brief_text column
+        # - filename/path in marketing_brief_pdf_url column
+        
+        # Step 5: Return PDF as downloadable file
+        return StreamingResponse(
+            pdf_buffer,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"'
+            }
+        )
+        
+    except Exception as e:
+        print(f"Error generating business brief: {e}")
+        import traceback
+        traceback.print_exc()
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating business brief: {str(e)}"
         )
 
 if __name__ == "__main__":
