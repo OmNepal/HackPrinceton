@@ -5,6 +5,8 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [user, setUser] = useState(null)
   const [input, setInput] = useState('')
+  const [budget, setBudget] = useState('')
+  const [location, setLocation] = useState('')
   const [loading, setLoading] = useState(false)
   const [response, setResponse] = useState(null)
   const [error, setError] = useState(null)
@@ -29,6 +31,8 @@ function App() {
     setIsAuthenticated(false)
     setUser(null)
     setInput('')
+    setBudget('')
+    setLocation('')
     setResponse(null)
     setError(null)
   }
@@ -48,13 +52,19 @@ function App() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ message: input }),
+        body: JSON.stringify({ 
+          message: input,
+          budget: budget,
+          location: location
+        })
       })
 
       if (!res.ok) throw new Error(`Server error: ${res.status}`)
       const data = await res.json()
       setResponse(data)
       setInput('')
+      setBudget('')
+      setLocation('')
     } catch (err) {
       setError(err.message || 'Failed to connect to backend')
     } finally {
@@ -85,16 +95,49 @@ function App() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="bg-white rounded-2xl shadow-xl p-6">
-            <label className="block text-sm font-semibold text-gray-700 mb-3">Describe Your Business Idea</label>
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="E.g., An app that helps people find local farmers markets..."
-              className="w-full h-40 p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 resize-none"
-              disabled={loading}
-            />
-            <div className="flex justify-between mt-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-3">Describe Your Business Idea</label>
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="E.g., An app that helps people find local farmers markets..."
+                className="w-full h-40 p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 resize-none"
+                disabled={loading}
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Budget</label>
+                <select
+                  value={budget}
+                  onChange={(e) => setBudget(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  disabled={loading}
+                >
+                  <option value="">Select budget range to get financial advice</option>
+                  <option value="under-10k">Under $10,000</option>
+                  <option value="10k-50k">$10,000 - $50,000</option>
+                  <option value="50k-100k">$50,000 - $100,000</option>
+                  <option value="100k-500k">$100,000 - $500,000</option>
+                  <option value="500k-plus">$500,000+</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Location</label>
+                <input
+                  type="text"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="Eg: Princeton, NJ"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  disabled={loading}
+                />
+              </div>
+            </div>
+            
+            <div className="flex justify-between items-center">
               <span className="text-xs text-gray-500">{input.length} characters</span>
               <button type="submit" disabled={loading || !input.trim()} className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold disabled:from-gray-400">
                 {loading ? 'Processing...' : 'Send Idea'}
