@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 from dedalus_agent import research_business_idea
+from snowflake_service import parse_intent, format_response
 
 app = FastAPI(title="FoundrMate API", version="1.0.0")
 
@@ -32,31 +33,57 @@ async def root():
 @app.post("/api/submit", response_model=BusinessIdeaResponse)
 async def submit_business_idea(request: BusinessIdeaRequest):
     """
-    Receives a business idea from the frontend and processes it using the Dedalus agent.
+    Receives a business idea from the frontend and processes it:
+    1. Parses intent using Snowflake
+    2. Routes to appropriate agent (legal agent for now)
+    3. Formats response using Snowflake
+    4. Returns structured response to frontend
     """
     try:
-        # Call the Dedalus agent with the user's business idea
+        # Step 1: Parse intent using Snowflake
+        parsed_intent = await parse_intent(request.message)
+
+        print(parsed_intent)
+        print("parsed_intent type", type(parsed_intent))
+        # Step 2: Route to legal agent (Dedalus) since it's the only one available
+        # In the future, we can check parsed_intent["needs"]["legal"] or ["needs"]["finance"]
         dedalus_result = await research_business_idea(request.message)
+        print(dedalus_result)
+        print("dedalus_result type", type(dedalus_result))
         
-        if dedalus_result["success"]:
-            return BusinessIdeaResponse(
-                success=True,
-                message="Business idea processed successfully",
-                data={
-                    "received_idea": request.message,
-                    "dedalus_research": dedalus_result["research_results"],
-                    "status": dedalus_result["status"]
-                }
-            )
-        else:
+        #errors not from here
+        if not dedalus_result["success"]:
             return BusinessIdeaResponse(
                 success=False,
                 message=f"Dedalus agent error: {dedalus_result.get('error', 'Unknown error')}",
                 data={
                     "received_idea": request.message,
+                    "parsed_intent": parsed_intent,
                     "status": "failed"
                 }
             )
+        
+        # Step 3: Format the Dedalus response using Snowflake
+        formatted_response = await format_response(
+            dedalus_result["research_results"],
+            "legal"  # Since we're using legal agent
+        )
+
+        print("formatted_response", formatted_response)
+        print(type(formatted_response))
+        # Step 4: Return structured response
+        return BusinessIdeaResponse(
+            success=True,
+            message="Business idea processed successfully",
+            data={
+                "received_idea": request.message,
+                "parsed_intent": parsed_intent,
+                "formatted_response": formatted_response,
+                "raw_dedalus_research": dedalus_result["research_results"],  # Keep raw for reference
+                "status": "completed"
+            }
+        )
+        
     except Exception as e:
         return BusinessIdeaResponse(
             success=False,
